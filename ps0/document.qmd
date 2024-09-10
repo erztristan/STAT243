@@ -1,27 +1,205 @@
 ---
-title: "matplotlib demo"
+title: "Problem Set 1"
 format:
   html:
     code-fold: true
 jupyter: python3
+---Task 1: 
 ---
 
-For a demonstration of a line plot on a polar axis, see @fig-polar.
+Task 1:
+
+The memory is a short-term memory in the computer, which can be accessed quickly by the CPU, but no content can be stored permanently. Today's forms of memory are, for example, RAM.
+
+The disk, on the other hand, is a long-term memory in the computer, which can only be reached slowly by the CPU, but which stores the contents permanently, even if there is no power supply, for example. Today's forms include SSR storage or HDR storage.
+
+Task 2:
+
+a\) Ever number has exact 8 Byte
+
+$16 MB=16.000KB=16.000.000Byte$
+
+$\frac{16.000.000Byte}{8Byte * 20 Columns} = 100.000 Rows$
 
 ```{python}
-#| label: fig-polar
-#| fig-cap: "A line plot on a polar axis"
-
+import os
+import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+import time
 
-r = np.arange(0, 2, 0.01)
-theta = 2 * np.pi * r
-fig, ax = plt.subplots(
-  subplot_kw = {'projection': 'polar'}
-)
-ax.plot(theta, r)
-ax.set_rticks([0.5, 1, 1.5, 2])
-ax.grid(True)
-plt.show()
+# Calculated rows
+rows = 100000
+columns = 20
+
+# Create numpy array of random numbers from a standard normal distribution
+x = np.random.randn(rows, columns)
+print(f"Count of MB:{str(x.nbytes/1e6)} MB")
 ```
+
+b\) We know from numbers of a standard normal distrubition, that the most numbers are between -10 ... 10. So the most numbers has 1 character before the decimal point, 1 character for the decimal point, 12 characters after the decimal point, one character for comma or next line(csv-specific) and to 50% a comma for -. So we have in general 1 + 1 + 12 +1 + 0.5 = 15.5 characters per number.
+
+$15.5*20*100.000 = 31.000.000 characters$
+
+```{python}
+x = x.round(decimals=12)
+
+# Count MB of a csv-File
+pd.DataFrame(x).to_csv("x.csv", header=False, index=False)
+print(
+    f"File size of the CSV with 12 decimal number: {str(os.path.getsize('x.csv')/1e6)} MB"
+)
+
+# Count MB of a pkl-File
+pd.DataFrame(x).to_pickle("x.pkl", compression=None)
+print(
+    f"File size of the PKL with 12 decimal number: {str(os.path.getsize('x.pkl')/1e6)} MB"
+)
+```
+
+Yes, we save a lot of storage space with the CSV, as we only have to save an average of 7.5 characters instead of 15.5 characters. The Pickel file, on the other hand, remains the same, as 8 bytes are always used for a number in a binary format.
+
+```{python}
+x = x.round(decimals=4)
+
+# Count MB of a csv-File
+pd.DataFrame(x).to_csv("x.csv", header=False, index=False)
+print(
+    f"File size of the CSV with 4 decimal number: {str(os.path.getsize('x.csv')/1e6)} MB"
+)
+
+# Count MB of a pkl-File
+pd.DataFrame(x).to_pickle("x.pkl", compression=None)
+print(
+    f"File size of the PKL with 4 decimal number: {str(os.path.getsize('x.pkl')/1e6)} MB"
+)
+```
+
+c\) Since each line break in a CSV is also implemented by a character and therefore no savings have been made as a result.
+
+d\) We can see from the times that accessing a pkl file is significantly faster than accessing a csv file:
+
+```{python}
+# Count time reading CSV
+t0 = time.time()
+df_csv = pd.read_csv("x.csv")
+print(f"Time to read CSV: {time.time() - t0:.4f} seconds")
+
+# Count time reading Pickle
+t0 = time.time()
+df_pkl = pd.read_pickle("x.pkl")
+print(f"Time to read Pickle: {time.time() - t0:.4f} seconds")
+```
+
+e\) When extracting in a single chunk with a chunk size of 10000, this works extremely quickly and efficiently:
+
+```{python}
+# Count time reading CSV with use chunks
+t0 = time.time()
+df_csv = pd.read_csv("x.csv", chunksize=10000, nrows=10000)
+print(f"Time to read csv with chunksize 10000: {time.time() - t0:.4f} seconds")
+```
+
+f\) The further back I go with skiprows, the longer it takes to find the corresponding 10.000 lines. In the end, it is faster to load all rows from the beginning to the desired point than to use the skiprows function:
+
+```{python}
+# Count time reading CSV with use skiprows
+t0 = time.time()
+df_csv = pd.read_csv("x.csv", chunksize=10000, nrows=10000, skiprows=40000)
+print(f"Time to read csv with chunks in the middle: {time.time() - t0:.4f} seconds")
+
+# Count time reading CSV without  skiprows
+t0 = time.time()
+df_csv = pd.read_csv("x.csv", chunksize=10000, nrows=50000)
+print(f"Time to read csv with chunks from beginning: {time.time() - t0:.4f} seconds")
+```
+
+Task 3:
+
+I know the PEP 8 style guidelines relatively well, as we also used them in my previous job as a data scientist. In general, such guidelines are of course annoying at the beginning and cost time, but later they bring a huge added value, as the code in a shared repo is always styled the same way and therefore every code looks the same. In addition, the guidelines for docstrings and comments are incredibly helpful, as an understanding of each function can be built up by a random person --\> Especially since cleanly documented docstrings can also be used to create automated documentation of the entire repo, which means that a function can not only be understood, but also found in the first place.
+
+Ruff has changed various minor formatting in my files so that, for example, a line of code or a comment only has a certain length.
+
+Task 4:
+
+a\) The url for the Michael I. Jordan is <https://scholar.google.com/citations?view_op=list_works&hl=de&hl=de&user=yxUduqMAAAAJ>. The user_id is yxUduqMAAAAJ
+
+b\)
+
+```{python}
+import subprocess
+from bs4 import BeautifulSoup
+import pandas as pd
+
+def download_html_with_curl(id = "yxUduqMAAAAJ"):
+    url = f"https://scholar.google.com/citations?user={id}&hl=en"
+    result = subprocess.run(["curl", "-L", url], capture_output=True)
+    html_content = result.stdout.decode('utf-8', errors='replace')
+
+    with open(f"{id}.html", 'w', encoding='utf-8') as file:
+        file.write(html_content)
+    return html_content
+
+scholar_id = "8OYE6iEAAAAJ"
+html_content = download_html_with_curl(id = scholar_id)
+```
+
+c\)
+
+```{python}
+def parse_citation_info(html_content = None, id = "yxUduqMAAAAJ"):
+    if html_content is None:
+        with open(f"{id}.html", 'r', encoding='utf-8') as file:
+            html_content = file.read()
+
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    rows = soup.find_all('tr', class_='gsc_a_tr')
+    titles, authors, journals, years, citations = [], [], [], [], []
+
+    for row in rows:
+        # Extract title
+        title = row.find('a', class_='gsc_a_at').text
+        titles.append(title)
+
+        # Extract authors and journal info (stored in the same div)
+        author_journal_info = row.find('div', class_='gs_gray').text
+        authors.append(author_journal_info.split(' - ')[0])
+        journals.append(author_journal_info.split(' - ')[1] if ' - ' in author_journal_info else '')
+
+        # Extract year
+        year = row.find('span', class_='gsc_a_hc').text
+        years.append(year)
+
+        # Extract citation count (if available)
+        citation = row.find('a', class_='gsc_a_ac').text
+        citations.append(citation if citation else '0')
+
+    # Create a DataFrame with the extracted data
+    df = pd.DataFrame({
+        'Title': titles,
+        'Authors': authors,
+        'Journal': journals,
+        'Year': years,
+        'Citations': citations
+    })
+
+    return df
+
+df = parse_citation_info(id = scholar_id)
+
+print(df)
+```
+
+d\)
+
+```{bash}
+pip freeze > requirements.txt
+```
+
+e\)
+
+f\)
+
+Task 5:
+
+It's fine to web scrape for specific information, as we did in task 4, as it is allowed in the robots.txt file as Allow: /citations?user=. However, Google Scholar severely restricts the use cases, which is why we have to make sure that our web scraping is within the Google Scholar terms and conditions. A programmatic query of the Google Scholar ID, on the other hand, would violate the guidelines.
